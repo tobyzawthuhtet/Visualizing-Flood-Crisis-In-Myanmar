@@ -1,14 +1,33 @@
-Map.centerObject(g3,10);
-var bufferG = geometry.buffer(1000,100);
-Map.addLayer(bufferG, {color : '#00ff19'},'buffer');
-//Map.centerObject(roi,12);
+// Visualization Environmental Imapcts in Myannmar using satellite imagery
+//Visualizing Flood crisis in Myanmar 
+// Bamho Flood project
 
 
-Map.centerObject(geometry,12);
+var g3 = ee.Geometry.Polygon([
+  [95.75868532846388,23.407681975936104],
+  [96.92323610971388,23.407681975936104],
+  [96.92323610971388,24.41451793106226],
+  [95.75868532846388,24.41451793106226],
+  [95.75868532846388,23.407681975936104]
+  ])
+  
+var geometry = ee.Geometry.Polygon( [
+  [95.36126130326876,22.996882234635734],
+  [97.55852692826876,22.996882234635734],
+  [97.55852692826876,24.904426792501074],
+  [95.36126130326876,24.904426792501074],
+  [95.36126130326876,22.996882234635734]
+  ]
+    )
+Map.centerObject(g3,13);
+var polarization ="VV" ;
+
+
 var S1 = ee.ImageCollection('COPERNICUS/S1_GRD')
-  .filterBounds(roi)
-  .filterDate('2014-10-01','2019-04-01')
-  .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+  .filterBounds(g3)//change to geometry
+  .filterDate('2018-6-01','2018-06-30')
+  .select(polarization);
+
 
 //Add first image to map to get an idea of what a SAR image looks like  
 Map.addLayer(S1.first(),{bands: 'VV',min: -18, max: 0}, 'SAR image', 0)
@@ -28,20 +47,20 @@ Map.addLayer(S1.first(),{bands: 'VV_Filtered',min: -18, max: 0}, 'Filtered SAR i
 
 var classifyWater = function(img) {
   var vv = img.select('VV_Filtered')
-  var water = vv.lt(-14).rename('Water')  //Identify all pixels below threshold and set them equal to 1. All other pixels set to 0
+  var water = vv.lt(-12).rename('Water')  //Identify all pixels below threshold and set them equal to 1. All other pixels set to 0
   water = water.updateMask(water) //Remove all pixels equal to 0
   return img.addBands(water)  //Return image with added classified water band
-}
+  }
 
 //Map classification across sentinel-1 collection and print to console to inspect
 S1 = S1.map(classifyWater)
 var waterbodies = S1.map(classifyWater)
 print(S1)
-
+Map.addLayer(S1.first().clip(g3),{bands: 'Water',min: -18, max: 0, palette : ['#FFFFFF','#0000FF']}, 'Water Bodies')
 //Make time series of water pixels within region
 var ClassChart = ui.Chart.image.series({
   imageCollection: S1.select('Water'),
-  region: g3,
+  region: geometry,//change to G3
   reducer: ee.Reducer.sum(),
   scale: 100,
 })
@@ -70,31 +89,30 @@ ClassChart.onClick(function(xValue, yValue, seriesName) {
   
     // Show the image for the clicked date.
     var equalDate = ee.Filter.equals('system:time_start', xValue);
-    //Find image coresponding with clicked data and clip water classification to roi 
+//Find image coresponding with clicked data and clip water classification to roi 
     var classification = ee.Image(S1.filter(equalDate).first()).select('Water'); 
     var SARimage = ee.Image(S1.filter(equalDate).first());
-    //Make map layer based on SAR image, reset the map layers, and add this new layer
+  //Make map layer based on SAR image, reset the map layers, and add this new layer
     var S1Layer = ui.Map.Layer(SARimage, {
       bands: ['VV'],
       max: 0,
       min: -20
     });
     Map.layers().reset([]);
-    var visParams = {
+  var visParams = {
       min: 0,
       max: 1,
       palette: ['#FFFFFF','#0000FF']
     }
     //Add water classification on top of SAR image
-    //Map.addLayer(classification,visParams,'Water')
-    var class1 = classification.clip(g3);
-    Map.addLayer(class1,visParams,'buffer')
+    Map.addLayer(classification.clip(g3),visParams,'Water')
+    
     // Show a label with the date on the map.
     label.setValue((new Date(xValue)).toUTCString());
   });
   
   
-Map.addLayer(S1.first().clip(g3),{bands: 'Water',min: -18, max: 0, palette : ['#FFFFFF','#0000FF']}, 'Water Bodies')
+
 //Map.addLayer(waterbodies ,{min :-18, max :0,palette :['#FFFFFF','#0000FF']}, 'Water Bodies' )
 
 //Add legends
@@ -130,7 +148,7 @@ var makeRow = function(color, name) {
           backgroundColor: '#' + color,
           // Use padding to give the box height and width.
           padding: '8px',
-          margin: '0 0 4px 0'
+         margin: '0 0 4px 0'
         }
       });
  
@@ -140,7 +158,7 @@ var makeRow = function(color, name) {
         style: {margin: '0 0 4px 6px'}
       });
  
-      // return the panel
+  // return the panel
       return ui.Panel({
         widgets: [colorBox, description],
         layout: ui.Panel.Layout.Flow('horizontal')
@@ -148,16 +166,15 @@ var makeRow = function(color, name) {
 };
  
 //  Palette with the colors
-var palette =['FF0000', '22ff00', '1500ff'];
+var palette =[ '22ff00', '1500ff'];
  
 // name of the legend
-var names = ['Ohn Taw Area','Buffer Area ','Water Bodies'];
+var names = ['Buffer Area ','Water Bodies'];
  
 // Add color and and names
-for (var i = 0; i < 3; i++) {
+for (var i = 0; i < 2; i++) {
   legend.add(makeRow(palette[i], names[i]));
   }  
  
 // add legend to map (alternatively you can also print the legend to the console)
 Map.add(legend);
-
