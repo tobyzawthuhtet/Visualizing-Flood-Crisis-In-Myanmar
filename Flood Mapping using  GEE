@@ -2,6 +2,9 @@
 //Visualizing Flood crisis in Myanmar 
 // Bamho Flood project
 
+//You can copy that code in Google Earth Engine to start your processing
+//https://tobyzawthuhtet.users.earthengine.app/view/dohphandeefloodproject 
+//visualization can be reached by this app
 
 var g3 = ee.Geometry.Polygon([
   [95.75868532846388,23.407681975936104],
