@@ -1,2 +1,2 @@
-# gis_code
+# Google Earth Engine Code
 python geoprocessing codes
