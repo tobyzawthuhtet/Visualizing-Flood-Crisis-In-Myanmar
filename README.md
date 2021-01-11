@@ -1,2 +1,2 @@
 # Google Earth Engine Code
-python geoprocessing codes
+Java Script geoprocessing codes
